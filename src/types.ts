@@ -1,4 +1,5 @@
 import { IBotStorageData } from "botbuilder";
+import { extname } from "path";
 
 export type BotState = any;
 export type BotStateType = "userData" | "conversationData" | "privateConversationData";
@@ -38,6 +39,11 @@ export interface IFirebaseReadOperation extends IReadOperation {
 export interface IFirebaseBotStorageSettings extends IBotStorageSettings {
     refName: string;
 }
+
+export interface IGDatastoreBotStorageSettings extends IBotStorageSettings {
+    kind: string;
+}
+
 
 export interface IMongoWriteOperation {
     _id: string;
