@@ -29,6 +29,10 @@ export class GDatastoreBotStorage extends BotStorage {
         if (!ds || (typeof (kind) === "undefined")) {
             throw new Error("Invalid constructor arguments for the GDataStoreBotStorage class. GDataStoreBotStorage");
         }
+        function fromDatastore(obj) {
+            obj.id = obj[ds.KEY].id;
+            return obj;
+        }
         this.getDataFunction = (data: IBotStorageDataHash, entry: any, resolve: any, reject: any) => {
 
             let q = ds.createQuery(kind).filter('key', '=', entry.key)
@@ -41,8 +45,13 @@ export class GDatastoreBotStorage extends BotStorage {
 
                 let item = entities.map(fromDatastore)[0];
                 // console.log("item", item)
-                var docData = item.data || "{}";
-                var hash = item.hash;
+
+                var docData = "{}";
+                var hash;
+                if (item) {
+                    docData = item.data;
+                    hash = item.hash;
+                }
                 var hashKey = entry.type + "Hash";
                 data[entry.type] = JSON.parse(docData);
                 data[hashKey] = hash;
@@ -53,7 +62,7 @@ export class GDatastoreBotStorage extends BotStorage {
 
 
         this.saveDataFunction = (entry: any, resolve: any, reject: any) => {
-    const { key, data, hash, type, lastModified, expireAt } = entry;
+            const { key, data, hash, type, lastModified, expireAt } = entry;
             const transaction = ds.transaction();
 
             let q = ds.createQuery(kind).filter('key', '=', entry.key)

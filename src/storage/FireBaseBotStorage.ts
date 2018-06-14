@@ -7,11 +7,16 @@ import {
 
 export class FireBaseBotStorage extends BotStorage {
 
+
     constructor(storageClient: any, public settings: IFirebaseBotStorageSettings) {
         super(storageClient, settings)
         const { refName } = settings || {} as IFirebaseBotStorageSettings;
         if (!storageClient || (typeof (refName) === "undefined")) {
             throw new Error("Invalid constructor arguments for the FireBaseBotStorage class. FireBaseBotStorage");
+        }
+        function fromDatastore(obj: any) {
+            obj.id = obj[ds.KEY].id;
+            return obj;
         }
         this.getDataFunction = (data: IBotStorageDataHash, entry: any, resolve: any, reject: any) => {
             storageClient.orderByChild("key").equalTo(entry.key).once("value", (snapshot: any) => {
