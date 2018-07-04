@@ -2,7 +2,7 @@
 import { BotStorage } from "./BotStorage";
 import {
     IBotStorageDataHash,
-    IGDatastoreBotStorageSettings,
+    IFirestoreBotStorageSettings,
 } from "../types";
 
 
@@ -23,49 +23,55 @@ function toDatastore(obj: any, nonIndexed: any) {
 }
 
 export class FirestoreBotStorage extends BotStorage {
-    constructor(ds: any, public settings: IGDatastoreBotStorageSettings) {
-        super(ds, settings)
-        const { kind } = settings || {} as IGDatastoreBotStorageSettings;
-        if (!ds || (typeof (kind) === "undefined")) {
-            throw new Error("Invalid constructor arguments for the GDataStoreBotStorage class. GDataStoreBotStorage");
+    constructor(collection: any, public settings: IFirestoreBotStorageSettings) {
+        super(collection, settings)
+        const { kind } = settings || {} as IFirestoreBotStorageSettings;
+        if (!collection) { // || (typeof (kind) === "undefined")) {
+            throw new Error("Invalid constructor arguments for the FirestoreBotStorage class. FirestoreBotStorage");
         }
         function fromDatastore(obj) {
-            obj.id = obj[ds.KEY].id;
+            obj.id = obj[collection.KEY].id;
             return obj;
         }
         this.getDataFunction = (data: IBotStorageDataHash, entry: any, resolve: any, reject: any) => {
 
-            let q = ds.createQuery(kind).filter('key', '=', entry.key)
-            ds.runQuery(q, (err, entities, nextQuery) => {
-                if (err) {
+            // let q = collection.createQuery(kind).filter('key', '=', entry.key)
+            // collection.runQuery(q, (err, entities, nextQuery) => {
+            let q = collection.where('key', '==', entry.key).get()
+                .then(querySnapshot => {
+                    const docs = querySnapshot.docs.map(doc => doc.data())
+                    console.debug("DOCS: ", docs)
+                    let item = docs[0]
+                    console.debug("item: ", item)
+
+                    // let item = entities.map(fromDatastore)[0];
+                    // console.log("item", item)
+
+                    var docData = "{}";
+                    var hash;
+                    if (item) {
+                        docData = item.data;
+                        hash = item.hash;
+                    }
+                    var hashKey = entry.type + "Hash";
+                    data[entry.type] = JSON.parse(docData);
+                    data[hashKey] = hash;
+                    console.debug("data: ", data)
+                    resolve();
+                })
+                .catch(err => {
                     reject(err);
                     return;
-                }
-
-
-                let item = entities.map(fromDatastore)[0];
-                // console.log("item", item)
-
-                var docData = "{}";
-                var hash;
-                if (item) {
-                    docData = item.data;
-                    hash = item.hash;
-                }
-                var hashKey = entry.type + "Hash";
-                data[entry.type] = JSON.parse(docData);
-                data[hashKey] = hash;
-                resolve();
-            });
+                })
 
         }
 
 
         this.saveDataFunction = (entry: any, resolve: any, reject: any) => {
             const { key, data, hash, type, lastModified, expireAt } = entry;
-            const transaction = ds.transaction();
+            const transaction = collection.transaction();
 
-            let q = ds.createQuery(kind).filter('key', '=', entry.key)
+            let q = collection.createQuery(kind).filter('key', '=', entry.key)
             ds.runQuery(q, (err, entities, nextQuery) => {
                 if (err) {
                     reject(err);

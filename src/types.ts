@@ -40,6 +40,9 @@ export interface IFirebaseBotStorageSettings extends IBotStorageSettings {
     refName: string;
 }
 
+export interface IFirestoreBotStorageSettings extends IBotStorageSettings {
+}
+
 export interface IGDatastoreBotStorageSettings extends IBotStorageSettings {
     kind: string;
 }
