@@ -29,10 +29,10 @@ export class FirestoreBotStorage extends BotStorage {
         if (!collection) { // || (typeof (kind) === "undefined")) {
             throw new Error("Invalid constructor arguments for the FirestoreBotStorage class. FirestoreBotStorage");
         }
-        function fromDatastore(obj) {
-            obj.id = obj[collection.KEY].id;
-            return obj;
-        }
+        // function fromDatastore(obj) {
+        //     obj.id = obj[collection.KEY].id;
+        //     return obj;
+        // }
         this.getDataFunction = (data: IBotStorageDataHash, entry: any, resolve: any, reject: any) => {
 
             // let q = collection.createQuery(kind).filter('key', '=', entry.key)
@@ -40,9 +40,7 @@ export class FirestoreBotStorage extends BotStorage {
             let q = collection.where('key', '==', entry.key).get()
                 .then(querySnapshot => {
                     const docs = querySnapshot.docs.map(doc => doc.data())
-                    console.debug("DOCS: ", docs)
                     let item = docs[0]
-                    console.debug("item: ", item)
 
                     // let item = entities.map(fromDatastore)[0];
                     // console.log("item", item)
@@ -56,7 +54,6 @@ export class FirestoreBotStorage extends BotStorage {
                     var hashKey = entry.type + "Hash";
                     data[entry.type] = JSON.parse(docData);
                     data[hashKey] = hash;
-                    console.debug("data: ", data)
                     resolve();
                 })
                 .catch(err => {
@@ -67,45 +64,58 @@ export class FirestoreBotStorage extends BotStorage {
         }
 
 
-        this.saveDataFunction = (entry: any, resolve: any, reject: any) => {
-            const { key, data, hash, type, lastModified, expireAt } = entry;
-            const transaction = collection.transaction();
-
-            let q = collection.createQuery(kind).filter('key', '=', entry.key)
-            ds.runQuery(q, (err, entities, nextQuery) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                // console.log("item.id", item)
-                let taskEntity = {
-                    key: ds.key(kind),
-                    data: {
-                        key,
-                        data,
-                        hash,
-                        type,
-                        lastModified,
-                        expireAt
-                    },
-                };
-                let item = entities.map(fromDatastore)[0];
-
-                if (item) {
-                    taskEntity.key = ds.key([kind, parseInt(item.id, 10)]);
-                }
-
-                ds.save(taskEntity, (err) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    resolve()
-                });
-
-
+        this.saveDataFunction = ((entry: any, resolve: any, reject: any) => {
+            // const { key, data, hash, type, lastModified, expireAt } = entry;
+            const firestore = collection.firestore
+            console.debug("RUN TRANSACTION")
+            firestore.runTransaction(trans => {
+                console.debug("Storing entry with key: ", entry.key)
+                console.debug("Entry: ", entry)
+                const doc = collection.doc(entry.key)
+                trans.set(doc, entry)
+                return Promise.resolve()
             })
-        }
+                .then(result => {
+                    console.log("Transaction success!")
+                })
+                .catch(err => {
+                    console.log("Transaction failure: ", err)
+                })
+
+            // let q = collection.createQuery(kind).filter('key', '=', entry.key)
+            // ds.runQuery(q, (err, entities, nextQuery) => {
+            //     if (err) {
+            //         reject(err);
+            //         return;
+            //     }
+            //     // console.log("item.id", item)
+            //     let taskEntity = {
+            //         key: ds.key(kind),
+            //         data: {
+            //             key,
+            //             data,
+            //             hash,
+            //             type,
+            //             lastModified,
+            //             expireAt
+            //         },
+            //     };
+            //     let item = entities.map(fromDatastore)[0];
+
+            //     if (item) {
+            //         taskEntity.key = ds.key([kind, parseInt(item.id, 10)]);
+            //     }
+
+            //     ds.save(taskEntity, (err) => {
+            //         if (err) {
+            //             reject(err);
+            //             return;
+            //         }
+            //         resolve()
+            //     });
+
+
+        })
     }
 
 }
